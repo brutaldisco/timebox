@@ -332,7 +332,7 @@ export const useTaskStore = create<TaskStore>()(
         const legacy = state as { tasks?: Task[] };
         if (legacy?.tasks) {
           return {
-            ...state,
+            ...(state ?? {}),
             ...buildStateFromTasks(legacy.tasks)
           };
         }
