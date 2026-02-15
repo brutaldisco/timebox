@@ -12,6 +12,12 @@ type TaskStore = {
   setHasHydrated: (value: boolean) => void;
   seedIfNeeded: () => void;
   addTask: (input: { title: string; parentId?: string; blocks: number }) => void;
+  addTaskAfter: (input: {
+    afterId: string;
+    title: string;
+    blocks: number;
+  }) => string | null;
+  deleteTask: (id: string) => void;
   updateTask: (id: string, patch: Partial<Task>) => void;
   setTaskStatus: (id: string, status: TaskStatus) => void;
   incrementCompletedBlocks: (id: string, count: number) => void;
@@ -144,6 +150,78 @@ export const useTaskStore = create<TaskStore>()(
           };
           const nextTasksById = { ...state.tasksById, [id]: newTask };
           updateOrderForParent(nextTasksById, nextChildren, parentId);
+          return {
+            tasksById: nextTasksById,
+            childrenByParentId: nextChildren
+          };
+        }),
+      addTaskAfter: ({ afterId, title, blocks }) => {
+        const id =
+          typeof crypto !== "undefined" && "randomUUID" in crypto
+            ? crypto.randomUUID()
+            : `task-${Date.now()}`;
+        set((state) => {
+          const anchor = state.tasksById[afterId];
+          if (!anchor) return state;
+          const parentId = anchor.parentId;
+          const depth = anchor.depth;
+          const key = parentKey(parentId);
+          const siblings = state.childrenByParentId[key] ?? [];
+          const afterIndex = siblings.indexOf(afterId);
+          if (afterIndex === -1) return state;
+          const nextChildrenIds = [
+            ...siblings.slice(0, afterIndex + 1),
+            id,
+            ...siblings.slice(afterIndex + 1)
+          ];
+          const newTask: Task = {
+            id,
+            title,
+            depth,
+            parentId,
+            blocks,
+            completedBlocks: 0,
+            status: "idle",
+            order: 0
+          };
+          const nextChildren = {
+            ...state.childrenByParentId,
+            [key]: nextChildrenIds
+          };
+          const nextTasksById = { ...state.tasksById, [id]: newTask };
+          updateOrderForParent(nextTasksById, nextChildren, parentId);
+          return {
+            tasksById: nextTasksById,
+            childrenByParentId: nextChildren
+          };
+        });
+        return id;
+      },
+      deleteTask: (id) =>
+        set((state) => {
+          const target = state.tasksById[id];
+          if (!target) return state;
+          const descendants = getDescendants(id, state.childrenByParentId);
+          const removeIds = [id, ...descendants];
+          const nextTasksById = { ...state.tasksById };
+          const nextChildren = { ...state.childrenByParentId };
+          const affectedParents = new Set<string | undefined>();
+
+          removeIds.forEach((removeId) => {
+            const task = state.tasksById[removeId];
+            if (!task) return;
+            affectedParents.add(task.parentId);
+            delete nextTasksById[removeId];
+            delete nextChildren[removeId];
+          });
+
+          affectedParents.forEach((parentId) => {
+            const key = parentKey(parentId);
+            const current = nextChildren[key] ?? [];
+            nextChildren[key] = current.filter((taskId) => !removeIds.includes(taskId));
+            updateOrderForParent(nextTasksById, nextChildren, parentId);
+          });
+
           return {
             tasksById: nextTasksById,
             childrenByParentId: nextChildren

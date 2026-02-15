@@ -9,6 +9,7 @@ type Props = {
 const MAX_BLOCKS = 4;
 
 export function TaskProgress({ blocks, completedBlocks, onChangeBlocks }: Props) {
+  const remainingBlocks = Math.max(0, blocks - completedBlocks);
   const handleClick = (index: number) => {
     if (!onChangeBlocks) return;
     const nextBlocks = Math.max(1, Math.min(MAX_BLOCKS, index + 1));
@@ -26,8 +27,12 @@ export function TaskProgress({ blocks, completedBlocks, onChangeBlocks }: Props)
               handleClick(index);
             }}
             className={`h-1.5 w-4 rounded-full transition ${
-              index < blocks ? "bg-slate-500" : "bg-slate-800"
-            } ${index < completedBlocks ? "bg-accent" : ""} ${
+              index < remainingBlocks
+                ? "bg-accent"
+                : index < blocks
+                ? "bg-slate-800"
+                : "bg-slate-900/40"
+            } ${
               onChangeBlocks ? "cursor-pointer hover:bg-slate-400" : ""
             }`}
           />

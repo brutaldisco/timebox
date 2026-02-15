@@ -5,7 +5,6 @@ import { TimerDisplay } from "@/components/TimerDisplay";
 import { CurrentTaskHeader } from "@/components/CurrentTaskHeader";
 import { TaskTree } from "@/components/TaskTree";
 import { TimerEngine } from "@/components/TimerEngine";
-import { NewTaskForm } from "@/components/NewTaskForm";
 import { useTaskStore } from "@/stores/useTaskStore";
 
 export default function HomePage() {
@@ -24,13 +23,10 @@ export default function HomePage() {
   return (
     <main className="mx-auto flex min-h-screen max-w-3xl flex-col px-6 py-10 sm:px-10">
       <TimerEngine />
-      <header className="rounded-2xl border border-slate-800/70 bg-slate-900/60 px-6 py-10 shadow-xl shadow-slate-950/40">
+      <header className="sticky top-0 z-10 rounded-2xl border border-slate-800/70 bg-slate-950/85 px-6 py-10 shadow-xl shadow-slate-950/40 backdrop-blur">
         <TimerDisplay />
         <CurrentTaskHeader />
       </header>
-      <section className="mt-6">
-        <NewTaskForm />
-      </section>
       <section className="mt-6">
         <TaskTree />
       </section>

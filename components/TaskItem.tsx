@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { MouseEvent } from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -13,7 +13,12 @@ type Props = {
   task: Task;
   depth: 1 | 2 | 3;
   isSelected: boolean;
+  autoEdit: boolean;
+  autoEditMode: "start" | "end";
+  onAutoEditConsumed: () => void;
   onSelect: (id: string) => void;
+  onCreateBelow: (id: string) => void;
+  onDelete: (id: string) => void;
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
 };
@@ -22,7 +27,12 @@ export function TaskItem({
   task,
   depth,
   isSelected,
+  autoEdit,
+  autoEditMode,
+  onAutoEditConsumed,
   onSelect,
+  onCreateBelow,
+  onDelete,
   onIndent,
   onOutdent
 }: Props) {
@@ -46,6 +56,9 @@ export function TaskItem({
   const measureRef = useRef<HTMLSpanElement | null>(null);
   const [inputWidth, setInputWidth] = useState<number | null>(null);
   const [isComposing, setIsComposing] = useState(false);
+  const inputRef = useRef<HTMLInputElement | null>(null);
+  const pendingAutoEditMode = useRef<"start" | "end" | null>(null);
+  const lastKeyRef = useRef<string | null>(null);
 
   const startEdit = (event: MouseEvent<HTMLSpanElement>) => {
     event.stopPropagation();
@@ -65,6 +78,24 @@ export function TaskItem({
     setDraftTitle(task.title);
     setIsEditing(false);
   };
+
+  useEffect(() => {
+    if (!autoEdit || isEditing) return;
+    setDraftTitle(task.title);
+    setIsEditing(true);
+    pendingAutoEditMode.current = autoEditMode;
+    onAutoEditConsumed();
+  }, [autoEdit, autoEditMode, isEditing, onAutoEditConsumed, task.title]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    if (pendingAutoEditMode.current !== "end") return;
+    const input = inputRef.current;
+    if (!input) return;
+    const len = input.value.length;
+    input.setSelectionRange(len, len);
+    pendingAutoEditMode.current = null;
+  }, [isEditing]);
 
   useLayoutEffect(() => {
     if (!isEditing) return;
@@ -124,10 +155,12 @@ export function TaskItem({
         {...(isEditing ? {} : listeners)}
         ref={rowRef}
         onClick={() => {
+          if (isEditing) return;
           onSelect(task.id);
           rowRef.current?.focus();
         }}
         onFocus={() => {
+          if (isEditing) return;
           if (!isSelected) {
             onSelect(task.id);
           }
@@ -137,13 +170,17 @@ export function TaskItem({
         }}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        tabIndex={0}
+        tabIndex={isEditing ? -1 : 0}
         className={`group flex h-[62px] items-center justify-between rounded-md border px-4 py-2 transition duration-150 outline-none ${
           task.status === "completed"
             ? "opacity-60"
             : "opacity-100"
         } ${
-          isSelected ? "border-accent/60" : "border-slate-900/60"
+          task.status === "running"
+            ? "border-accent"
+            : isSelected
+            ? "border-accent/60"
+            : "border-slate-900/60"
         } bg-slate-900/40 hover:border-slate-700/70 cursor-text ${
           isDragging ? "opacity-80" : ""
         }`}
@@ -200,18 +237,36 @@ export function TaskItem({
                 </span>
                 <input
                   autoFocus
+                  ref={inputRef}
                   value={draftTitle}
-                  onChange={(event) => setDraftTitle(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setDraftTitle(value);
+                    if (
+                      !isComposing &&
+                      value === "" &&
+                      lastKeyRef.current === "Backspace"
+                    ) {
+                      onDelete(task.id);
+                    }
+                  }}
                   onBlur={() => {
                     if (!isComposing) {
                       commitEdit();
                     }
                   }}
                   onKeyDown={(event) => {
+                    lastKeyRef.current = event.key;
+                    if (event.key === "Backspace" && !isComposing && draftTitle.length === 0) {
+                      event.preventDefault();
+                      onDelete(task.id);
+                      return;
+                    }
                     if (event.key === "Enter") {
                       event.preventDefault();
                       if (!isComposing) {
                         commitEdit();
+                        onCreateBelow(task.id);
                       }
                     }
                     if (event.key === "Escape") {
@@ -221,6 +276,7 @@ export function TaskItem({
                   }}
                   onCompositionStart={() => setIsComposing(true)}
                   onCompositionEnd={() => setIsComposing(false)}
+                  onClick={(event) => event.stopPropagation()}
                   onPointerDown={(event) => event.stopPropagation()}
                   style={{ width: inputWidth ? `${inputWidth}px` : "auto" }}
                   className="h-[20px] bg-transparent px-0 py-0 text-sm font-medium leading-[20px] text-slate-100 focus:outline-none"

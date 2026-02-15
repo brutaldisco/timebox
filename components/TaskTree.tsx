@@ -23,9 +23,15 @@ export function TaskTree() {
   const tasksById = useTaskStore((state) => state.tasksById);
   const childrenByParentId = useTaskStore((state) => state.childrenByParentId);
   const moveTask = useTaskStore((state) => state.moveTask);
+  const addTaskAfter = useTaskStore((state) => state.addTaskAfter);
+  const deleteTask = useTaskStore((state) => state.deleteTask);
   const hasHydrated = useTaskStore((state) => state.hasHydrated);
   const enforceFlat = useTaskStore((state) => state.enforceFlat);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [autoEditState, setAutoEditState] = useState<{
+    id: string;
+    mode: "start" | "end";
+  } | null>(null);
   const [indentLevels, setIndentLevels] = useState<Record<string, 0 | 1 | 2>>(
     {}
   );
@@ -123,6 +129,25 @@ export function TaskTree() {
     moveTask(activeIdValue, overIdValue, placeAfter);
   };
 
+  const handleCreateBelow = (taskId: string) => {
+    const newId = addTaskAfter({ afterId: taskId, title: "", blocks: 1 });
+    if (!newId) return;
+    setSelectedTaskId(newId);
+    setAutoEditState({ id: newId, mode: "start" });
+  };
+  const handleDeleteTask = (taskId: string) => {
+    const index = visibleIds.indexOf(taskId);
+    const prevId = index > 0 ? visibleIds[index - 1] : null;
+    deleteTask(taskId);
+    if (prevId) {
+      setSelectedTaskId(prevId);
+      setAutoEditState({ id: prevId, mode: "end" });
+    } else {
+      setSelectedTaskId(null);
+      setAutoEditState(null);
+    }
+  };
+
   return (
     <DndContext
       sensors={sensors}
@@ -137,7 +162,16 @@ export function TaskTree() {
               task={task}
               depth={(indentLevel + 1) as 1 | 2 | 3}
               isSelected={selectedTaskId === task.id}
+              autoEdit={autoEditState?.id === task.id}
+              autoEditMode={autoEditState?.mode ?? "start"}
+              onAutoEditConsumed={() => {
+                if (autoEditState?.id === task.id) {
+                  setAutoEditState(null);
+                }
+              }}
               onSelect={setSelectedTaskId}
+              onCreateBelow={handleCreateBelow}
+              onDelete={handleDeleteTask}
               onIndent={(id) =>
                 setIndentLevels((prev) => ({
                   ...prev,
