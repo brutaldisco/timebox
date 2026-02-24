@@ -4,12 +4,20 @@ type Props = {
   blocks: number;
   completedBlocks: number;
   onChangeBlocks?: (nextBlocks: number) => void;
+  size?: "sm" | "md";
 };
 
 const MAX_BLOCKS = 4;
 
-export function TaskProgress({ blocks, completedBlocks, onChangeBlocks }: Props) {
+export function TaskProgress({
+  blocks,
+  completedBlocks,
+  onChangeBlocks,
+  size = "sm"
+}: Props) {
   const remainingBlocks = Math.max(0, blocks - completedBlocks);
+  const dotClass = size === "md" ? "h-2 w-6" : "h-1.5 w-4";
+  const textClass = size === "md" ? "text-sm" : "text-xs";
   const handleClick = (index: number) => {
     if (!onChangeBlocks) return;
     const nextBlocks = Math.max(1, Math.min(MAX_BLOCKS, index + 1));
@@ -17,7 +25,7 @@ export function TaskProgress({ blocks, completedBlocks, onChangeBlocks }: Props)
   };
 
   return (
-    <div className="flex items-center gap-3 text-xs text-slate-400">
+    <div className={`flex items-center gap-3 text-slate-400 ${textClass}`}>
       <div className="flex items-center gap-1">
         {Array.from({ length: MAX_BLOCKS }).map((_, index) => (
           <span
@@ -26,7 +34,7 @@ export function TaskProgress({ blocks, completedBlocks, onChangeBlocks }: Props)
               event.stopPropagation();
               handleClick(index);
             }}
-            className={`h-1.5 w-4 rounded-full transition ${
+            className={`${dotClass} rounded-full transition ${
               index < remainingBlocks
                 ? "bg-accent"
                 : index < blocks

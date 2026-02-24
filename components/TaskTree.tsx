@@ -129,11 +129,19 @@ export function TaskTree() {
     moveTask(activeIdValue, overIdValue, placeAfter);
   };
 
-  const handleCreateBelow = (taskId: string) => {
-    const newId = addTaskAfter({ afterId: taskId, title: "", blocks: 1 });
+  const handleCreateBelow = (taskId: string, title: string) => {
+    const newId = addTaskAfter({
+      afterId: taskId,
+      title,
+      blocks: 1
+    });
     if (!newId) return;
+    setIndentLevels((prev) => ({
+      ...prev,
+      [newId]: prev[taskId] ?? 0
+    }));
     setSelectedTaskId(newId);
-    setAutoEditState({ id: newId, mode: "start" });
+    setAutoEditState({ id: newId, mode: "end" });
   };
   const handleDeleteTask = (taskId: string) => {
     const index = visibleIds.indexOf(taskId);
@@ -146,6 +154,18 @@ export function TaskTree() {
       setSelectedTaskId(null);
       setAutoEditState(null);
     }
+  };
+  const handleNavigate = (taskId: string, direction: "up" | "down") => {
+    const index = visibleIds.indexOf(taskId);
+    if (index === -1) return;
+    const nextIndex = direction === "up" ? index - 1 : index + 1;
+    const targetId = visibleIds[nextIndex];
+    if (!targetId) return;
+    setSelectedTaskId(targetId);
+    setAutoEditState({
+      id: targetId,
+      mode: direction === "up" ? "end" : "start"
+    });
   };
 
   return (
@@ -172,6 +192,7 @@ export function TaskTree() {
               onSelect={setSelectedTaskId}
               onCreateBelow={handleCreateBelow}
               onDelete={handleDeleteTask}
+              onNavigate={handleNavigate}
               onIndent={(id) =>
                 setIndentLevels((prev) => ({
                   ...prev,

@@ -2,6 +2,7 @@
 
 import { useTaskStore } from "@/stores/useTaskStore";
 import { useTimerStore } from "@/stores/useTimerStore";
+import { TaskProgress } from "@/components/TaskProgress";
 
 const statusLabel: Record<string, string> = {
   idle: "Idle",
@@ -24,6 +25,15 @@ export function CurrentTaskHeader() {
       <div className="mt-1 text-sm uppercase tracking-widest text-slate-400">
         {task ? statusLabel[task.status] : "Idle"}
       </div>
+      {task ? (
+        <div className="mt-4 flex items-center justify-center">
+          <TaskProgress
+            blocks={task.blocks}
+            completedBlocks={task.completedBlocks}
+            size="md"
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

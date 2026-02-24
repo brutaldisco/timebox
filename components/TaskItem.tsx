@@ -17,8 +17,9 @@ type Props = {
   autoEditMode: "start" | "end";
   onAutoEditConsumed: () => void;
   onSelect: (id: string) => void;
-  onCreateBelow: (id: string) => void;
+  onCreateBelow: (id: string, title: string) => void;
   onDelete: (id: string) => void;
+  onNavigate: (id: string, direction: "up" | "down") => void;
   onIndent: (id: string) => void;
   onOutdent: (id: string) => void;
 };
@@ -33,6 +34,7 @@ export function TaskItem({
   onSelect,
   onCreateBelow,
   onDelete,
+  onNavigate,
   onIndent,
   onOutdent
 }: Props) {
@@ -69,7 +71,15 @@ export function TaskItem({
   const commitEdit = () => {
     const nextTitle = draftTitle.trim();
     if (nextTitle && nextTitle !== task.title) {
-      updateTask(task.id, { title: nextTitle });
+      if (task.status === "completed") {
+        updateTask(task.id, {
+          title: nextTitle,
+          status: "idle",
+          completedBlocks: 0
+        });
+      } else {
+        updateTask(task.id, { title: nextTitle });
+      }
     }
     setIsEditing(false);
   };
@@ -240,15 +250,14 @@ export function TaskItem({
                   ref={inputRef}
                   value={draftTitle}
                   onChange={(event) => {
-                    const value = event.target.value;
-                    setDraftTitle(value);
-                    if (
-                      !isComposing &&
-                      value === "" &&
-                      lastKeyRef.current === "Backspace"
-                    ) {
-                      onDelete(task.id);
-                    }
+                    setDraftTitle(event.target.value);
+                  }}
+                  onCut={(event) => {
+                    if (isComposing) return;
+                    const input = event.currentTarget;
+                    requestAnimationFrame(() => {
+                      setDraftTitle(input.value);
+                    });
                   }}
                   onBlur={() => {
                     if (!isComposing) {
@@ -257,16 +266,63 @@ export function TaskItem({
                   }}
                   onKeyDown={(event) => {
                     lastKeyRef.current = event.key;
+                    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x") {
+                      lastKeyRef.current = "Cut";
+                    }
+                    if (event.key === "Tab") {
+                      event.preventDefault();
+                      if (event.shiftKey) {
+                        onOutdent(task.id);
+                      } else {
+                        onIndent(task.id);
+                      }
+                      return;
+                    }
                     if (event.key === "Backspace" && !isComposing && draftTitle.length === 0) {
                       event.preventDefault();
                       onDelete(task.id);
                       return;
                     }
+                    if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                      const input = inputRef.current;
+                      if (!input) return;
+                      const start = input.selectionStart ?? 0;
+                      const end = input.selectionEnd ?? 0;
+                      const atStart = start === 0 && end === 0;
+                      const atEnd = start === input.value.length && end === input.value.length;
+                      if (event.key === "ArrowUp" && atStart) {
+                        event.preventDefault();
+                        if (!isComposing) {
+                          commitEdit();
+                          onNavigate(task.id, "up");
+                        }
+                        return;
+                      }
+                      if (event.key === "ArrowDown" && atEnd) {
+                        event.preventDefault();
+                        if (!isComposing) {
+                          commitEdit();
+                          onNavigate(task.id, "down");
+                        }
+                        return;
+                      }
+                    }
                     if (event.key === "Enter") {
                       event.preventDefault();
                       if (!isComposing) {
-                        commitEdit();
-                        onCreateBelow(task.id);
+                        const input = inputRef.current;
+                        const start = input?.selectionStart ?? draftTitle.length;
+                        const end = input?.selectionEnd ?? start;
+                        const beforeRaw = draftTitle.slice(0, start);
+                        const afterRaw = draftTitle.slice(end);
+                        const before = beforeRaw.trimEnd();
+                        const after = afterRaw.trimStart();
+                        if (before !== task.title) {
+                          updateTask(task.id, { title: before });
+                        }
+                        setDraftTitle(before);
+                        setIsEditing(false);
+                        onCreateBelow(task.id, after);
                       }
                     }
                     if (event.key === "Escape") {
