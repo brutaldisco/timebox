@@ -1,0 +1,14 @@
+{
+  "name": "@timebox/desktop",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "tauri:dev": "tauri dev",
+    "tauri:dev:remote": "TIMEBOX_DEV_URL=https://timebox.vercel.app tauri dev",
+    "tauri:build": "tauri build",
+    "tauri:build:remote": "TIMEBOX_REMOTE_URL=https://timebox.vercel.app tauri build"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2.0.0"
+  }
+}

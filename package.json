@@ -2,12 +2,24 @@
   "name": "timebox-pwa",
   "private": true,
   "version": "0.1.0",
+  "workspaces": [
+    "apps/web",
+    "apps/desktop",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "WATCHPACK_POLLING=true next dev",
     "build": "next build",
     "start": "next start",
     "preview": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "web:dev": "npm run dev",
+    "web:build": "npm run build",
+    "web:start": "npm run start",
+    "desktop:dev": "npm --prefix apps/desktop run tauri:dev",
+    "desktop:build": "npm --prefix apps/desktop run tauri:build",
+    "desktop:dev:remote": "npm --prefix apps/desktop run tauri:dev:remote",
+    "desktop:web:bundle": "DESKTOP_EXPORT=1 next build && node tools/build-desktop-web.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
