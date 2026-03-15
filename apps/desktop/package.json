@@ -5,8 +5,8 @@
   "scripts": {
     "tauri:dev": "tauri dev",
     "tauri:dev:remote": "TIMEBOX_DEV_URL=https://timebox.vercel.app tauri dev",
-    "tauri:build": "tauri build",
-    "tauri:build:remote": "TIMEBOX_REMOTE_URL=https://timebox.vercel.app tauri build"
+    "tauri:build": "CI=true tauri build",
+    "tauri:build:remote": "CI=true TIMEBOX_REMOTE_URL=https://timebox.vercel.app tauri build"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.0.0"

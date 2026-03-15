@@ -68,18 +68,23 @@ export function TaskItem({
     setIsEditing(true);
   };
 
+  const applyTitleChange = (nextTitle: string) => {
+    if (nextTitle === task.title) return;
+    if (task.status === "completed") {
+      updateTask(task.id, {
+        title: nextTitle,
+        status: "idle",
+        completedBlocks: 0
+      });
+      return;
+    }
+    updateTask(task.id, { title: nextTitle });
+  };
+
   const commitEdit = () => {
     const nextTitle = draftTitle.trim();
     if (nextTitle && nextTitle !== task.title) {
-      if (task.status === "completed") {
-        updateTask(task.id, {
-          title: nextTitle,
-          status: "idle",
-          completedBlocks: 0
-        });
-      } else {
-        updateTask(task.id, { title: nextTitle });
-      }
+      applyTitleChange(nextTitle);
     }
     setIsEditing(false);
   };
@@ -266,6 +271,11 @@ export function TaskItem({
                   }}
                   onKeyDown={(event) => {
                     lastKeyRef.current = event.key;
+                    const nativeEvent = event.nativeEvent as KeyboardEvent;
+                    const isImeComposingNow =
+                      isComposing ||
+                      nativeEvent.isComposing ||
+                      event.keyCode === 229;
                     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "x") {
                       lastKeyRef.current = "Cut";
                     }
@@ -308,22 +318,21 @@ export function TaskItem({
                       }
                     }
                     if (event.key === "Enter") {
-                      event.preventDefault();
-                      if (!isComposing) {
-                        const input = inputRef.current;
-                        const start = input?.selectionStart ?? draftTitle.length;
-                        const end = input?.selectionEnd ?? start;
-                        const beforeRaw = draftTitle.slice(0, start);
-                        const afterRaw = draftTitle.slice(end);
-                        const before = beforeRaw.trimEnd();
-                        const after = afterRaw.trimStart();
-                        if (before !== task.title) {
-                          updateTask(task.id, { title: before });
-                        }
-                        setDraftTitle(before);
-                        setIsEditing(false);
-                        onCreateBelow(task.id, after);
+                      if (isImeComposingNow) {
+                        return;
                       }
+                      event.preventDefault();
+                      const input = inputRef.current;
+                      const start = input?.selectionStart ?? draftTitle.length;
+                      const end = input?.selectionEnd ?? start;
+                      const beforeRaw = draftTitle.slice(0, start);
+                      const afterRaw = draftTitle.slice(end);
+                      const before = beforeRaw.trimEnd();
+                      const after = afterRaw.trimStart();
+                      applyTitleChange(before);
+                      setDraftTitle(before);
+                      setIsEditing(false);
+                      onCreateBelow(task.id, after);
                     }
                     if (event.key === "Escape") {
                       event.preventDefault();

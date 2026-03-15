@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "com.brutaldisco.timebox",
   "build": {
-    "beforeDevCommand": "npm --prefix ../../.. run web:dev",
+    "beforeDevCommand": "npm --prefix ../.. run web:dev",
     "devUrl": "http://127.0.0.1:3000",
-    "beforeBuildCommand": "npm --prefix ../../.. run desktop:web:bundle",
+    "beforeBuildCommand": "npm --prefix ../.. run desktop:web:bundle",
     "frontendDist": "../dist"
   },
   "app": {
@@ -18,6 +18,8 @@
   "bundle": {
     "active": true,
     "targets": "app",
-    "icon": []
+    "icon": [
+      "icons/icon.png"
+    ]
   }
 }
